@@ -1,0 +1,11 @@
+fastapi==0.95.2
+uvicorn==0.22.0
+sqlalchemy==2.0.29
+firebird-driver
+sqlalchemy-firebird
+fdb
+python-dotenv
+ldap3
+python-jose
+passlib[bcrypt]
+pydantic==1.10.13

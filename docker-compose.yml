@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    container_name: diploma_app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - firebird
+    environment:
+      - DB_URL=firebird+fdb://sysdba:masterkey@firebird:3050/db.fdb
+
+  firebird:
+    image: jacobalberty/firebird
+    container_name: firebird_db
+    environment:
+      ISC_PASSWORD: masterkey
+    ports:
+      - "3050:3050"
+    volumes:
+      - firebird_data:/firebird/data
+
+volumes:
+  firebird_data:
