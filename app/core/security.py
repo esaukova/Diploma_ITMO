@@ -5,7 +5,11 @@ SECRET_KEY = "supersecret"
 ALGORITHM = "HS256"
 
 
-def create_token(data: dict):
-    payload = data.copy()
-    payload["exp"] = datetime.utcnow() + timedelta(hours=1)
+def create_token(user):
+    payload = {
+        "sub": user["username"],
+        "role": user["role"],   # 🔥 ВАЖНО
+        "exp": datetime.utcnow() + timedelta(hours=8)
+    }
+
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)

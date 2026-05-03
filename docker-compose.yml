@@ -1,15 +1,19 @@
 version: "3.9"
 
 services:
-  app:
+  backend:
     build: .
-    container_name: diploma_app
-    ports:
-      - "8000:8000"
+    container_name: fastapi_app
     depends_on:
       - firebird
     environment:
-      - DB_URL=firebird+fdb://sysdba:masterkey@firebird:3050/db.fdb
+      - DB_URL=firebird+fdb://sysdba:masterkey@firebird:3050//firebird/data/db.fdb
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app/app
+    command: >
+      sh -c "sleep 10 && python init_db.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"
 
   firebird:
     image: jacobalberty/firebird

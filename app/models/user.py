@@ -1,10 +1,9 @@
 from sqlalchemy import Column, Integer, String
-from app.db.base import Base
-
+from app.db.session import Base
 
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
-    username = Column(String)
-    role = Column(String)
+    username = Column(String(255))
+    role = Column(String(50))

@@ -2,10 +2,22 @@ from ldap3 import Server, Connection, ALL
 from app.core.config import settings
 
 
+def extract_role(groups):
+    groups = [g.lower() for g in groups]
+
+    if any("diplomaadmins" in g for g in groups):
+        return "manager"
+
+    if any("diplomausers" in g for g in groups):
+        return "worker"
+
+    return "worker"
+
+
 def authenticate(username: str, password: str):
     server = Server(settings.LDAP_SERVER, get_info=ALL)
 
-    # сначала bind админом
+    # 🔹 bind админом
     conn = Connection(
         server,
         user=settings.LDAP_USER_DN,
@@ -13,7 +25,6 @@ def authenticate(username: str, password: str):
         auto_bind=True
     )
 
-    # ищем пользователя
     search_filter = f"(sAMAccountName={username})"
 
     conn.search(
@@ -28,7 +39,7 @@ def authenticate(username: str, password: str):
     user_entry = conn.entries[0]
     user_dn = user_entry.distinguishedName.value
 
-    # теперь пробуем логиниться под пользователем
+    # 🔹 bind пользователем
     user_conn = Connection(
         server,
         user=user_dn,
@@ -38,16 +49,19 @@ def authenticate(username: str, password: str):
     if not user_conn.bind():
         return None
 
-    # проверяем группы
-    groups = user_entry.memberOf.values if "memberOf" in user_entry else []
+    # 🔥 получаем группы
+    groups = []
+    if "memberOf" in user_entry:
+        groups = user_entry.memberOf.values
 
-    role = "employee"
+    # 🔥 определяем роль
+    role = extract_role(groups)
 
-    for g in groups:
-        if "DiplomaUsers" in g:
-            role = "employee"
+    # 🔥 DEBUG (можешь временно оставить)
+    print("LDAP groups:", groups)
+    print("ROLE:", role)
 
     return {
-        "sub": username,
+        "username": username,
         "role": role
     }

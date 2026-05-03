@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from app.ldap.ldap_client import authenticate
 from app.core.security import create_token
 
-router = APIRouter()
+router = APIRouter(prefix="/auth")
 
 
 @router.post("/login")
@@ -14,4 +14,6 @@ def login(username: str, password: str):
 
     token = create_token(user)
 
-    return {"access_token": token}
+    return {"access_token": token,
+            "role": user["role"]
+    }
