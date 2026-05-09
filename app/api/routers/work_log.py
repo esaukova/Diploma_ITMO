@@ -1,28 +1,50 @@
 from fastapi import APIRouter, Depends
+from jose import jwt
 from sqlalchemy.orm import Session
+
+from app.api.deps import oauth2_scheme
+from app.core.security import ALGORITHM, SECRET_KEY
 from app.db.session import get_db
+from app.models.user import User
+from app.services import work_log_service
 from app.services.work_log_service import create_log, get_user_logs, get_all_logs
 from datetime import date
 
-router = APIRouter(prefix="/work-log")
+router = APIRouter(
+    prefix="/work-log",
+    tags=["Work Log"]
+)
 
-# заглушка пользователя (потом заменим на JWT)
-def get_current_user():
-    return {"sub": "esaukova"}
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+
+    username = payload.get("sub")
+
+    return User(username=username)
 
 @router.post("/mark")
-def mark(
+def mark_work_log(
     work_type: str,
-    date: str,   # 🔥 принимаем дату
-    db: Session = Depends(get_db)
+    work_date: str,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
-    user = get_current_user()
-    return create_log(db, user["sub"], work_type, date)
+    return work_log_service.create_log(
+        db,
+        current_user.username,
+        work_type,
+        work_date
+    )
 
 @router.get("/my")
-def get_my_logs(db: Session = Depends(get_db)):
-    user = get_current_user()
-    return get_user_logs(db, user["sub"])
+def get_my_logs(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    return work_log_service.get_user_logs(
+        db,
+        current_user.username
+    )
 
 @router.get("/all")
 def get_all(db: Session = Depends(get_db)):

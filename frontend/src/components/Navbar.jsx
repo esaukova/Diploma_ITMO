@@ -1,68 +1,173 @@
-import { useNavigate, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import {
+  LogOut,
+  CalendarDays,
+  ShieldCheck,
+} from "lucide-react";
+
+import { useNavigate } from "react-router-dom";
 
 export default function Navbar() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [role, setRole] = useState("");
 
-  useEffect(() => {
-    setRole(localStorage.getItem("role") || "");
-  }, []);
+  const navigate = useNavigate();
+
+  const role =
+    localStorage.getItem("role");
+
+  const isManager =
+    role === "manager";
 
   const logout = () => {
-    if (window.confirm("Вы уверены, что хотите выйти?")) {
-      localStorage.clear();
-      navigate("/");
-    }
-  };
 
-  const getTitle = () => {
-    if (location.pathname === "/dashboard") return "📊 Панель управления";
-    if (location.pathname === "/calendar") return "📅 Календарь";
-    return "Work Tracker";
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+
+    navigate("/");
   };
 
   return (
-    <div style={styles.nav}>
-      <div>
-        <h2 style={styles.title}>{getTitle()}</h2>
-        {role && <span style={styles.role}>{role === "manager" ? "Менеджер" : "Сотрудник"}</span>}
+    <header style={styles.header}>
+
+      <div style={styles.left}>
+
+        <div style={styles.logo}>
+
+          {isManager ? (
+
+            <ShieldCheck
+              size={20}
+              color="#dc2626"
+            />
+
+          ) : (
+
+            <CalendarDays
+              size={20}
+              color="#dc2626"
+            />
+          )}
+        </div>
+
+        <div>
+
+          <div style={styles.title}>
+
+            {isManager
+              ? "Панель администратора"
+              : "Календарь"}
+          </div>
+
+          <div style={styles.subtitle}>
+
+            {isManager
+              ? "Менеджер"
+              : "Сотрудник"}
+          </div>
+        </div>
       </div>
-      <button style={styles.btn} onClick={logout}>
-        🚪 Выйти
+
+      <button
+        style={styles.logout}
+        onClick={logout}
+      >
+
+        <LogOut size={16} />
+
+        Выйти
       </button>
-    </div>
+    </header>
   );
 }
 
 const styles = {
-  nav: {
+
+  header: {
+    height: "72px",
+
+    background: "white",
+
+    borderBottom:
+      "2px solid #dc2626",
+
     display: "flex",
-    justifyContent: "space-between",
+
     alignItems: "center",
-    padding: "15px 30px",
-    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-    color: "white",
-    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+
+    justifyContent:
+      "space-between",
+
+    padding: "0 28px",
+
+    boxShadow:
+      "0 1px 2px rgba(0,0,0,0.04)",
   },
+
+  left: {
+    display: "flex",
+
+    alignItems: "center",
+
+    gap: "14px",
+  },
+
+  logo: {
+    width: "38px",
+
+    height: "38px",
+
+    borderRadius: "10px",
+
+    background: "#fef2f2",
+
+    display: "flex",
+
+    alignItems: "center",
+
+    justifyContent: "center",
+  },
+
   title: {
-    margin: 0,
     fontSize: "20px",
+
+    fontWeight: "700",
+
+    color: "#111827",
   },
-  role: {
-    fontSize: "12px",
-    opacity: 0.9,
-    marginLeft: "10px",
+
+  subtitle: {
+    fontSize: "13px",
+
+    color: "#6b7280",
+
+    marginTop: "2px",
   },
-  btn: {
-    background: "rgba(255,255,255,0.2)",
-    color: "white",
-    border: "none",
-    padding: "8px 20px",
+
+  logout: {
+    height: "40px",
+
+    padding: "0 18px",
+
+    borderRadius: "10px",
+
+    border:
+      "1px solid #e5e7eb",
+
+    background: "white",
+
+    color: "#374151",
+
+    display: "flex",
+
+    alignItems: "center",
+
+    gap: "8px",
+
     cursor: "pointer",
-    borderRadius: "8px",
+
     fontSize: "14px",
-    transition: "background 0.3s",
+
+    fontWeight: "600",
+
+    transition:
+      "all 0.2s ease",
   },
 };

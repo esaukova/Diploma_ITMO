@@ -1,180 +1,545 @@
-import { useEffect, useState } from "react";
-import api from "../api/client";
-import Navbar from "../components/Navbar";
+import { useEffect, useMemo, useState } from "react";
+
+import UserSearch from "../components/UserSearch";
+import UserModal from "../components/UserModal";
+
 import {
+  Users,
+  Building2,
+  Home,
+  Ban,
+  HeartPulse,
+  ClipboardList,
+  Activity,
+  TrendingUp,
+} from "lucide-react";
+
+import {
+  ResponsiveContainer,
   BarChart,
   Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
   PieChart,
   Pie,
   Cell,
-  Legend,
+  Tooltip,
+  XAxis,
+  YAxis,
+  CartesianGrid,
 } from "recharts";
 
+import api from "../api/client";
+import Navbar from "../components/Navbar";
+
 export default function Dashboard() {
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [allLogs, setAllLogs] = useState([]);
 
-  useEffect(() => {
-    Promise.all([
-      api.get("/work-log/all"),
-      api.get("/work-log/my")
-    ]).then(([allRes, myRes]) => {
-      setLogs(allRes.data);
-      setAllLogs(myRes.data);
-      setLoading(false);
-    }).catch(err => {
-      console.error("Error loading data:", err);
-      setLoading(false);
-    });
-  }, []);
+  const [selectedUser, setSelectedUser] =
+    useState(null);
 
-  const today = new Date().toISOString().split("T")[0];
-  const todayLogs = logs.filter((l) => l.work_date === today);
+  const [selectedStatus, setSelectedStatus] =
+    useState(null);
 
-  const stats = {
-    OFFICE: todayLogs.filter((l) => l.status === "OFFICE").length,
-    REMOTE: todayLogs.filter((l) => l.status === "REMOTE").length,
-    OFF: todayLogs.filter((l) => l.status === "OFF").length,
-    SICK: todayLogs.filter((l) => l.status === "SICK DAY").length,
+  const [logs, setLogs] =
+    useState([]);
+
+  const loadLogs = async () => {
+
+    try {
+
+      const res =
+        await api.get("/work-log/all");
+
+      setLogs(res.data);
+
+    } catch (e) {
+
+      console.error(e);
+    }
   };
 
-  const chartData = [
-    { status: "OFFICE", count: stats.OFFICE, color: "#10b981" },
-    { status: "REMOTE", count: stats.REMOTE, color: "#3b82f6" },
-    { status: "OFF", count: stats.OFF, color: "#6b7280" },
+  const getStatusText = (status) => {
+
+  switch (status) {
+
+    case "OFFICE":
+      return "Офис";
+
+    case "REMOTE":
+      return "Удаленно";
+
+    case "OFF":
+      return "Выходной";
+
+    case "SICK_DAY":
+      return "Больничный";
+
+    default:
+      return status;
+  }
+};
+
+  useEffect(() => {
+    loadLogs();
+  }, []);
+
+  const today =
+    new Date().toLocaleDateString("sv-SE");
+
+  const todayLogs = useMemo(() => {
+
+    return logs.filter(
+      (l) => l.work_date === today
+    );
+
+  }, [logs, today]);
+
+  const uniqueUsers = [
+    ...new Set(
+      logs.map((l) => l.user_id)
+    ),
   ];
 
-  const pieData = chartData.filter(d => d.count > 0);
+  const officeCount =
+    todayLogs.filter(
+      (l) => l.status === "OFFICE"
+    ).length;
 
-  const uniqueUsers = [...new Set(logs.map(l => l.user_id))];
-  const totalEntries = logs.length;
+  const remoteCount =
+    todayLogs.filter(
+      (l) => l.status === "REMOTE"
+    ).length;
 
-  if (loading) {
-    return (
-      <div>
-        <Navbar />
-        <div style={styles.loading}>Загрузка данных...</div>
-      </div>
-    );
-  }
+  const offCount =
+    todayLogs.filter(
+      (l) => l.status === "OFF"
+    ).length;
+
+  const sickCount =
+    todayLogs.filter(
+      (l) =>
+        l.status === "SICK_DAY"
+    ).length;
+
+  const totalLogs = logs.length;
+
+  const attendancePercent =
+    todayLogs.length > 0
+      ? Math.round(
+          (officeCount /
+            todayLogs.length) *
+            100
+        )
+      : 0;
+
+  const chartData = [
+    {
+      name: "Офис",
+      value: officeCount,
+    },
+
+    {
+      name: "Удаленно",
+      value: remoteCount,
+    },
+
+    {
+      name: "Выходной",
+      value: offCount,
+    },
+
+    {
+      name: "Больничный",
+      value: sickCount,
+    },
+  ];
+
+  const COLORS = [
+    "#16a34a",
+    "#2563eb",
+    "#6b7280",
+    "#dc2626",
+  ];
 
   return (
-    <div>
-      <Navbar />
+    <div style={styles.page}>
 
-      <div style={{ padding: 30 }}>
-        <h2 style={styles.header}>📊 Панель управления</h2>
+      <Navbar
+        title="Административная панель"
+        subtitle="Система мониторинга сотрудников"
+      />
 
-        {/* KPI Cards */}
-        <div style={styles.kpiGrid}>
-          <div style={{...styles.card, background: "#e0f2fe"}}>
-            <div style={styles.cardIcon}>👥</div>
-            <div style={styles.cardValue}>{uniqueUsers.length}</div>
-            <div style={styles.cardLabel}>Пользователей</div>
-          </div>
+      <div style={styles.wrapper}>
 
-          <div style={{...styles.card, background: "#d1fae5"}}>
-            <div style={styles.cardIcon}>🏢</div>
-            <div style={styles.cardValue}>{stats.OFFICE}</div>
-            <div style={styles.cardLabel}>В офисе</div>
-          </div>
+        {/* HEADER */}
 
-          <div style={{...styles.card, background: "#dbeafe"}}>
-            <div style={styles.cardIcon}>🏠</div>
-            <div style={styles.cardValue}>{stats.REMOTE}</div>
-            <div style={styles.cardLabel}>Удаленно</div>
-          </div>
+        <div style={styles.pageTitle}>
 
-          <div style={{...styles.card, background: "#f3f4f6"}}>
-            <div style={styles.cardIcon}>❌</div>
-            <div style={styles.cardValue}>{stats.OFF}</div>
-            <div style={styles.cardLabel}>Выходной</div>
-          </div>
+          <TrendingUp
+            size={28}
+            color="#dc2626"
+          />
 
-          <div style={{...styles.card, background: "#fef3c7"}}>
-            <div style={styles.cardIcon}>📝</div>
-            <div style={styles.cardValue}>{totalEntries}</div>
-            <div style={styles.cardLabel}>Всего записей</div>
+          <div>
+
+            <div style={styles.subtitle}>
+              Мониторинг сотрудников
+              и активности
+            </div>
           </div>
         </div>
 
-        {/* Charts Section */}
-        <div style={styles.chartsSection}>
+
+        {/* SEARCH */}
+
+        <UserSearch
+          onSelect={(user) =>
+            setSelectedUser(user)
+          }
+        />
+
+
+        {/* KPI */}
+
+        <div style={styles.cards}>
+
+          <StatCard
+            icon={<Users size={28} />}
+            title="Сотрудников"
+            value={uniqueUsers.length}
+            color="#2563eb"
+          />
+
+          <StatCard
+            icon={<Building2 size={28} />}
+            title="В офисе"
+            value={officeCount}
+            color="#16a34a"
+            onClick={() =>
+              setSelectedStatus("OFFICE")
+            }
+          />
+
+          <StatCard
+            icon={<Home size={28} />}
+            title="Удаленно"
+            value={remoteCount}
+            color="#2563eb"
+            onClick={() =>
+              setSelectedStatus("REMOTE")
+            }
+          />
+
+          <StatCard
+            icon={<Ban size={28} />}
+            title="Выходной"
+            value={offCount}
+            color="#6b7280"
+            onClick={() =>
+              setSelectedStatus("OFF")
+            }
+          />
+
+          <StatCard
+            icon={
+              <HeartPulse size={28} />
+            }
+            title="Больничный"
+            value={sickCount}
+            color="#dc2626"
+            onClick={() =>
+              setSelectedStatus("SICK_DAY")
+            }
+          />
+
+          <StatCard
+            icon={
+              <ClipboardList size={28} />
+            }
+            title="Всего записей"
+            value={totalLogs}
+            color="#f59e0b"
+          />
+        </div>
+
+
+        {/* CHARTS */}
+
+        <div style={styles.chartsRow}>
+
+          {/* BAR */}
+
           <div style={styles.chartCard}>
-            <h3>📊 Статистика за сегодня</h3>
-            <BarChart width={400} height={300} data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="status" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="count" fill="#8884d8">
-                {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Bar>
-            </BarChart>
+
+            <div style={styles.chartHeader}>
+              <Activity
+                size={18}
+                color="#dc2626"
+              />
+
+              Статистика за сегодня
+            </div>
+
+            <ResponsiveContainer
+              width="100%"
+              height={300}
+            >
+
+              <BarChart data={chartData}>
+
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                />
+
+                <XAxis dataKey="name" />
+
+                <YAxis />
+
+                <Tooltip />
+
+                <Bar
+                  dataKey="value"
+                  radius={[6, 6, 0, 0]}
+                >
+
+                  {chartData.map(
+                    (entry, index) => (
+
+                      <Cell
+                        key={index}
+                        fill={
+                          COLORS[index]
+                        }
+                      />
+                    )
+                  )}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
 
-          {pieData.length > 0 && (
-            <div style={styles.chartCard}>
-              <h3>🥧 Распределение</h3>
-              <PieChart width={400} height={300}>
-                <Pie
-                  data={pieData}
-                  cx={200}
-                  cy={150}
-                  labelLine={false}
-                  label={({ status, count }) => `${status}: ${count}`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="count"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
+
+          {/* PIE */}
+
+          <div style={styles.chartCard}>
+
+            <div style={styles.chartHeader}>
+               Распределение
             </div>
-          )}
+
+            <ResponsiveContainer
+              width="100%"
+              height={300}
+            >
+
+              <PieChart>
+
+                <Pie
+                  data={chartData}
+                  dataKey="value"
+                  innerRadius={70}
+                  outerRadius={110}
+                  paddingAngle={4}
+                >
+
+                  {chartData.map(
+                    (entry, index) => (
+
+                      <Cell
+                        key={index}
+                        fill={
+                          COLORS[index]
+                        }
+                      />
+                    )
+                  )}
+                </Pie>
+
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+
+            <div style={styles.centerInfo}>
+
+              <div style={styles.centerPercent}>
+                {attendancePercent}%
+              </div>
+
+              <div style={styles.centerLabel}>
+                в офисе
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Users Table */}
-        <h3 style={styles.sectionTitle}>👤 Сотрудники сегодня</h3>
 
-        {todayLogs.length === 0 ? (
-          <div style={styles.emptyState}>Нет данных за сегодня</div>
-        ) : (
-          <div style={styles.table}>
-            <div style={styles.tableHeader}>
-              <div style={styles.th}>#</div>
-              <div style={styles.th}>ID сотрудника</div>
-              <div style={styles.th}>Статус</div>
-              <div style={styles.th}>Дата</div>
-            </div>
-            {todayLogs.map((l, i) => (
-              <div key={i} style={styles.tableRow}>
-                <div style={styles.td}>{i + 1}</div>
-                <div style={styles.td}>{l.user_id}</div>
-                <div style={styles.td}>
-                  <span style={{
-                    ...styles.statusBadge,
-                    background: l.status === "OFFICE" ? "#10b981" :
-                               l.status === "REMOTE" ? "#3b82f6" : "#6b7280"
-                  }}>
-                    {l.status === "OFFICE" ? "🏢 Офис" :
-                     l.status === "REMOTE" ? "🏠 Удаленно" : "❌ Выходной"}
-                  </span>
+        {/* ACTIVITY */}
+
+        <div style={styles.activityCard}>
+
+          <div style={styles.activityHeader}>
+            Последняя активность
+          </div>
+
+          {logs
+            .slice()
+            .reverse()
+            .slice(0, 5)
+            .map((log, index) => (
+
+              <div
+                key={index}
+                style={styles.activityRow}
+              >
+
+                <div>
+
+                  <div
+                    style={
+                      styles.activityUser
+                    }
+                  >
+                    {log.user_id}
+                  </div>
+
+                  <div
+                    style={
+                      styles.activityDate
+                    }
+                  >
+                    {log.work_date}
+                  </div>
                 </div>
-                <div style={styles.td}>{l.work_date}</div>
+
+                <StatusBadge
+                  status={log.status}
+                />
               </div>
             ))}
+        </div>
+
+
+        {/* TABLE */}
+
+        <div style={styles.tableCard}>
+
+          <div style={styles.tableHeader}>
+            Сотрудники сегодня
+          </div>
+
+          <table style={styles.table}>
+
+            <thead>
+
+              <tr>
+
+                <th style={styles.th}>
+                  #
+                </th>
+
+                <th style={styles.th}>
+                  Сотрудник
+                </th>
+
+                <th style={styles.th}>
+                  Статус
+                </th>
+
+                <th style={styles.th}>
+                  Дата
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+
+              {todayLogs.map(
+                (log, index) => (
+
+                  <tr
+                    key={index}
+                    style={styles.tr}
+                  >
+
+                    <td style={styles.td}>
+                      {index + 1}
+                    </td>
+
+                    <td style={styles.td}>
+                      {log.user_id}
+                    </td>
+
+                    <td style={styles.td}>
+                      <StatusBadge
+                        status={log.status}
+                      />
+                    </td>
+
+                    <td style={styles.td}>
+                      {log.work_date}
+                    </td>
+                  </tr>
+                )
+              )}
+            </tbody>
+          </table>
+        </div>
+
+
+        {/* USER MODAL */}
+
+        <UserModal
+          user={selectedUser}
+          logs={logs}
+          onClose={() =>
+            setSelectedUser(null)
+          }
+        />
+
+
+        {/* STATUS MODAL */}
+
+        {selectedStatus && (
+
+          <div style={styles.modalOverlay}>
+
+            <div style={styles.statusModal}>
+
+              <div style={styles.modalHeader}>
+
+                Сотрудники со статусом
+
+                {" "}
+
+                <span style={{ color: "#000000" }}>
+                  {getStatusText(selectedStatus)}
+                </span>
+              </div>
+
+              {todayLogs
+                .filter(
+                  (l) =>
+                    l.status ===
+                    selectedStatus
+                )
+                .map((log, index) => (
+
+                  <div
+                    key={index}
+                    style={styles.userRow}
+                  >
+                    {log.user_id}
+                  </div>
+                ))}
+
+              <button
+                style={styles.closeBtn}
+                onClick={() =>
+                  setSelectedStatus(null)
+                }
+              >
+                Закрыть
+              </button>
+
+            </div>
           </div>
         )}
       </div>
@@ -182,100 +547,444 @@ export default function Dashboard() {
   );
 }
 
+
+/* STATUS BADGE */
+
+function StatusBadge({ status }) {
+
+  const map = {
+
+    OFFICE: {
+      text: "Офис",
+      bg: "#dcfce7",
+      color: "#166534",
+    },
+
+    REMOTE: {
+      text: "Удаленно",
+      bg: "#dbeafe",
+      color: "#1d4ed8",
+    },
+
+    OFF: {
+      text: "Выходной",
+      bg: "#f3f4f6",
+      color: "#374151",
+    },
+
+    SICK_DAY: {
+      text: "Больничный",
+      bg: "#fee2e2",
+      color: "#b91c1c",
+    },
+  };
+
+  const current =
+    map[status] || map.OFF;
+
+
+  return (
+    <div
+      style={{
+        background: current.bg,
+        color: current.color,
+
+        padding: "6px 12px",
+
+        borderRadius: "999px",
+
+        fontSize: "13px",
+
+        fontWeight: "600",
+
+        display: "inline-flex",
+      }}
+    >
+      {current.text}
+    </div>
+  );
+}
+
+
+/* KPI */
+
+function StatCard({
+  icon,
+  title,
+  value,
+  color,
+  onClick,
+}) {
+
+  return (
+    <div
+      style={{
+        ...styles.statCard,
+        cursor: onClick
+          ? "pointer"
+          : "default",
+        transition: "0.2s",
+      }}
+      onClick={onClick}
+    >
+
+      <div
+        style={{
+          ...styles.iconBox,
+          background:
+            `${color}15`,
+        }}
+      >
+
+        <div style={{ color }}>
+          {icon}
+        </div>
+      </div>
+
+      <div style={styles.statValue}>
+        {value}
+      </div>
+
+      <div style={styles.statTitle}>
+        {title}
+      </div>
+    </div>
+  );
+}
+
+
+/* STYLES */
+
 const styles = {
-  loading: {
-    textAlign: "center",
-    padding: "50px",
-    fontSize: "18px",
-    color: "#666",
+
+  page: {
+    background: "#f5f5f5",
+    minHeight: "100vh",
   },
-  header: {
-    marginBottom: "30px",
-    color: "#1f2937",
+
+  wrapper: {
+    padding: "32px",
   },
-  kpiGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-    gap: "20px",
-    marginBottom: "40px",
+
+  pageTitle: {
+    display: "flex",
+    alignItems: "center",
+    gap: "16px",
+
+    marginBottom: "24px",
   },
-  card: {
-    padding: "20px",
-    borderRadius: "12px",
-    textAlign: "center",
-    transition: "transform 0.2s",
-    cursor: "pointer",
-  },
-  cardIcon: {
+
+  title: {
     fontSize: "32px",
-    marginBottom: "10px",
+    fontWeight: "700",
+    color: "#111827",
   },
-  cardValue: {
-    fontSize: "28px",
-    fontWeight: "bold",
-    color: "#1f2937",
-  },
-  cardLabel: {
-    fontSize: "14px",
+
+  subtitle: {
+    marginTop: "4px",
     color: "#6b7280",
-    marginTop: "5px",
+    fontSize: "14px",
   },
-  chartsSection: {
+
+  cards: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))",
-    gap: "30px",
-    marginBottom: "40px",
+
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(180px, 1fr))",
+
+    gap: "20px",
+
+    marginBottom: "28px",
   },
+
+  statCard: {
+    background: "white",
+
+    borderRadius: "16px",
+
+    padding: "24px",
+
+    border:
+      "1px solid #e5e7eb",
+
+    boxShadow:
+      "0 1px 3px rgba(0,0,0,0.05)",
+  },
+
+  iconBox: {
+    width: "52px",
+    height: "52px",
+
+    borderRadius: "14px",
+
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+
+    marginBottom: "18px",
+  },
+
+  statValue: {
+    fontSize: "32px",
+    fontWeight: "700",
+    color: "#111827",
+  },
+
+  statTitle: {
+    marginTop: "6px",
+    color: "#6b7280",
+    fontSize: "14px",
+  },
+
+  chartsRow: {
+    display: "grid",
+
+    gridTemplateColumns:
+      "1fr 1fr",
+
+    gap: "24px",
+
+    marginBottom: "28px",
+  },
+
   chartCard: {
     background: "white",
-    padding: "20px",
-    borderRadius: "12px",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+
+    borderRadius: "16px",
+
+    border:
+      "1px solid #e5e7eb",
+
+    padding: "24px",
+
+    position: "relative",
+
+    boxShadow:
+      "0 1px 3px rgba(0,0,0,0.05)",
   },
-  sectionTitle: {
-    margin: "30px 0 20px 0",
-    color: "#1f2937",
+
+  chartHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+
+    fontSize: "18px",
+    fontWeight: "700",
+
+    marginBottom: "20px",
+
+    color: "#111827",
   },
-  table: {
-    background: "white",
-    borderRadius: "12px",
-    overflow: "hidden",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-  },
-  tableHeader: {
-    display: "grid",
-    gridTemplateColumns: "60px 1fr 1fr 1fr",
-    background: "#f3f4f6",
-    padding: "12px 16px",
-    fontWeight: "bold",
-    borderBottom: "1px solid #e5e7eb",
-  },
-  th: {
-    color: "#374151",
-  },
-  tableRow: {
-    display: "grid",
-    gridTemplateColumns: "60px 1fr 1fr 1fr",
-    padding: "12px 16px",
-    borderBottom: "1px solid #f3f4f6",
-    transition: "background 0.2s",
-  },
-  td: {
-    color: "#4b5563",
-  },
-  statusBadge: {
-    display: "inline-block",
-    padding: "4px 12px",
-    borderRadius: "20px",
-    color: "white",
-    fontSize: "12px",
-    fontWeight: "bold",
-  },
-  emptyState: {
+
+  centerInfo: {
+    position: "absolute",
+
+    top: "52%",
+    left: "50%",
+
+    transform:
+      "translate(-50%, -50%)",
+
     textAlign: "center",
-    padding: "40px",
-    background: "#f9fafb",
-    borderRadius: "12px",
+  },
+
+  centerPercent: {
+    fontSize: "32px",
+    fontWeight: "800",
+    color: "#111827",
+  },
+
+  centerLabel: {
+    marginTop: "4px",
     color: "#6b7280",
+    fontSize: "14px",
+  },
+
+  activityCard: {
+    background: "white",
+
+    borderRadius: "16px",
+
+    border:
+      "1px solid #e5e7eb",
+
+    padding: "24px",
+
+    marginBottom: "28px",
+
+    boxShadow:
+      "0 1px 3px rgba(0,0,0,0.05)",
+  },
+
+  activityHeader: {
+    fontSize: "20px",
+    fontWeight: "700",
+
+    marginBottom: "20px",
+
+    color: "#111827",
+  },
+
+  activityRow: {
+    display: "flex",
+
+    alignItems: "center",
+
+    justifyContent:
+      "space-between",
+
+    padding: "16px 0",
+
+    borderBottom:
+      "1px solid #f3f4f6",
+  },
+
+  activityUser: {
+    fontWeight: "600",
+    color: "#111827",
+  },
+
+  activityDate: {
+    marginTop: "4px",
+
+    color: "#6b7280",
+
+    fontSize: "13px",
+  },
+
+  tableCard: {
+    background: "white",
+
+    borderRadius: "16px",
+
+    border:
+      "1px solid #e5e7eb",
+
+    overflow: "hidden",
+
+    boxShadow:
+      "0 1px 3px rgba(0,0,0,0.05)",
+  },
+
+  tableHeader: {
+    padding: "24px",
+
+    borderBottom:
+      "1px solid #e5e7eb",
+
+    fontSize: "20px",
+    fontWeight: "700",
+
+    color: "#111827",
+  },
+
+  table: {
+    width: "100%",
+    borderCollapse: "collapse",
+  },
+
+  th: {
+    textAlign: "left",
+
+    padding: "16px 24px",
+
+    background: "#fafafa",
+
+    fontSize: "13px",
+
+    fontWeight: "700",
+
+    color: "#6b7280",
+
+    textTransform: "uppercase",
+  },
+
+  tr: {
+    borderBottom:
+      "1px solid #f3f4f6",
+  },
+
+  td: {
+    padding: "18px 24px",
+
+    color: "#111827",
+
+    fontSize: "14px",
+  },
+
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+
+    background:
+      "rgba(0,0,0,0.45)",
+
+    display: "flex",
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    zIndex: 1000,
+  },
+
+  statusModal: {
+    width: "420px",
+
+    background: "white",
+
+    borderRadius: "18px",
+
+    padding: "28px",
+
+    boxShadow:
+      "0 20px 50px rgba(0,0,0,0.18)",
+  },
+
+  modalHeader: {
+    fontSize: "24px",
+
+    fontWeight: "700",
+
+    marginBottom: "24px",
+
+    color: "#111827",
+  },
+
+  userRow: {
+    padding: "14px 16px",
+
+    border:
+      "1px solid #e5e7eb",
+
+    borderRadius: "12px",
+
+    marginBottom: "12px",
+
+    fontWeight: "600",
+
+    background: "#fafafa",
+
+    color: "#111827",
+  },
+
+  closeBtn: {
+    width: "100%",
+
+    height: "48px",
+
+    border: "none",
+
+    borderRadius: "12px",
+
+    background: "#dc2626",
+
+    color: "white",
+
+    fontWeight: "700",
+
+    cursor: "pointer",
+
+    marginTop: "18px",
   },
 };

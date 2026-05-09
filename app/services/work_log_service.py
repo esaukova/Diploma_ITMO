@@ -1,14 +1,16 @@
-from datetime import datetime
+from datetime import date
 from app.models.work_log import WorkLog
 
 
-def create_log(db, username, work_type, date_str):
+def create_log(
+    db,
+    username,
+    work_type,
+    work_date
+):
     """
     Создать или обновить запись о работе за конкретную дату
     """
-
-    # 🔥 преобразуем строку в дату
-    work_date = datetime.strptime(date_str, "%Y-%m-%d").date()
 
     # 🔍 проверяем, есть ли уже запись на эту дату
     existing = db.query(WorkLog).filter(
@@ -16,13 +18,16 @@ def create_log(db, username, work_type, date_str):
         WorkLog.work_date == work_date
     ).first()
 
-    # 🔁 если есть — обновляем
+    # 🔁 если запись уже есть — обновляем статус
     if existing:
         existing.status = work_type
+
         db.commit()
+        db.refresh(existing)
+
         return existing
 
-    # 🆕 если нет — создаём новую
+    # 🆕 создаём новую запись
     log = WorkLog(
         user_id=username,
         work_date=work_date,
@@ -30,6 +35,7 @@ def create_log(db, username, work_type, date_str):
     )
 
     db.add(log)
+
     db.commit()
     db.refresh(log)
 
@@ -40,6 +46,7 @@ def get_user_logs(db, username):
     """
     Получить все записи конкретного пользователя
     """
+
     return db.query(WorkLog).filter(
         WorkLog.user_id == username
     ).all()
@@ -49,7 +56,5 @@ def get_all_logs(db):
     """
     Получить все записи (для менеджера)
     """
-    return db.query(WorkLog).all()
 
-def get_all_logs(db):
     return db.query(WorkLog).all()

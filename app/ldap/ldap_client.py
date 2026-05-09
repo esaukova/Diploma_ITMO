@@ -65,3 +65,59 @@ def authenticate(username: str, password: str):
         "username": username,
         "role": role
     }
+
+def search_users(query: str):
+
+    server = Server(
+        settings.LDAP_SERVER,
+        get_info=ALL
+    )
+
+    conn = Connection(
+        server,
+        user=settings.LDAP_USER_DN,
+        password=settings.LDAP_PASSWORD,
+        auto_bind=True
+    )
+
+    search_filter = (
+        f"(&(objectClass=user)"
+        f"(sAMAccountName=*{query}*))"
+    )
+
+    conn.search(
+        settings.LDAP_BASE_DN,
+        search_filter,
+        attributes=[
+            "sAMAccountName",
+            "memberOf",
+            "cn"
+        ]
+    )
+
+    result = []
+
+    for entry in conn.entries:
+
+        groups = (
+            entry.memberOf.values
+            if "memberOf" in entry
+            else []
+        )
+
+        is_user = any(
+            "DiplomaUsers" in g
+            for g in groups
+        )
+
+        if is_user:
+
+            result.append({
+                "username":
+                    entry.sAMAccountName.value,
+
+                "full_name":
+                    entry.cn.value,
+            })
+
+    return result

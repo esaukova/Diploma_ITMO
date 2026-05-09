@@ -1,143 +1,407 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+
+import {
+  User,
+  LockKeyhole,
+  ArrowRight,
+} from "lucide-react";
+
+import logo from "../assets/logo1.png";
+
 import api from "../api/client";
 
 export default function Login() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
+  const [username, setUsername] =
+    useState("");
 
-    if (token && role === "manager") navigate("/dashboard");
-    if (token && role === "worker") navigate("/calendar");
-  }, [navigate]);
+  const [password, setPassword] =
+    useState("");
 
-  const handleLogin = async () => {
-    if (!username.trim() || !password.trim()) {
-      alert("Заполните все поля");
-      return;
-    }
+  const [error, setError] =
+    useState("");
 
+  const [loading, setLoading] =
+    useState(false);
+
+  const handleLogin = async (e) => {
+
+    e.preventDefault();
+
+    setError("");
     setLoading(true);
+
     try {
-      const res = await api.post("/auth/login", null, {
-        params: { username, password },
-      });
 
-      const token = res.data.access_token;
-      const role = res.data.role;
+      const response =
+        await api.post("/auth/login", null, {
+          params: {
+            username,
+            password,
+          },
+        });
 
-      if (!token || !role) {
-        throw new Error("Неверный ответ сервера");
+      localStorage.setItem(
+        "token",
+        response.data.access_token
+      );
+
+      localStorage.setItem(
+        "role",
+        response.data.role
+      );
+
+      if (
+        response.data.role === "manager"
+      ) {
+        navigate("/dashboard");
+
+      } else {
+        navigate("/calendar");
       }
 
-      localStorage.setItem("token", token);
-      localStorage.setItem("role", role);
+    } catch (err) {
 
-      if (role === "manager") navigate("/dashboard");
-      else navigate("/calendar");
-    } catch (error) {
-      console.error("Login error:", error);
-      alert(error.response?.data?.detail || "Ошибка авторизации");
+      console.error(err);
+
+      setError(
+        "Неверный логин или пароль"
+      );
+
     } finally {
+
       setLoading(false);
     }
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      handleLogin();
-    }
-  };
-
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <h2 style={styles.title}>Треккер удаленки</h2>
-        <p style={styles.subtitle}>Войдите в систему</p>
+    <div style={styles.page}>
 
-        <input
-          type="text"
-          placeholder="Имя пользователя"
-          style={styles.input}
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          onKeyPress={handleKeyPress}
-          disabled={loading}
-        />
+      {/* LEFT PANEL */}
 
-        <input
-          type="password"
-          placeholder="Пароль"
-          style={styles.input}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          onKeyPress={handleKeyPress}
-          disabled={loading}
-        />
+      <div style={styles.leftPanel}>
 
-        <button
-          style={{...styles.button, opacity: loading ? 0.6 : 1}}
-          onClick={handleLogin}
-          disabled={loading}
+        <div>
+
+          <div style={styles.brandBlock}>
+
+            <img
+              src={logo}
+              alt="Company logo"
+              style={styles.logoImage}
+            />
+
+            <div>
+
+              <div style={styles.projectTitle}>
+                РЕД МОНИТОР
+              </div>
+
+              <div style={styles.projectSubtitle}>
+                Система мониторинга сотрудников
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+
+        <div style={styles.infoBlock}>
+
+          <div style={styles.infoTitle}>
+            Контроль удалённой работы
+          </div>
+
+          <div style={styles.infoText}>
+            Корпоративная система мониторинга
+            гибридного формата работы сотрудников.
+          </div>
+
+        </div>
+      </div>
+
+
+      {/* RIGHT PANEL */}
+
+      <div style={styles.rightPanel}>
+
+        <form
+          onSubmit={handleLogin}
+          style={styles.formCard}
         >
-          {loading ? "Вход..." : "Войти"}
-        </button>
+
+          <div style={styles.formHeader}>
+
+            <div style={styles.formTitle}>
+              Вход в систему
+            </div>
+
+            <div style={styles.formSubtitle}>
+              Авторизация через LDAP
+            </div>
+
+          </div>
+
+
+          <div style={styles.inputWrapper}>
+
+            <User
+              size={18}
+              color="#6b7280"
+            />
+
+            <input
+              type="text"
+              placeholder="Имя пользователя"
+              value={username}
+              onChange={(e) =>
+                setUsername(e.target.value)
+              }
+              style={styles.input}
+            />
+          </div>
+
+
+          <div style={styles.inputWrapper}>
+
+            <LockKeyhole
+              size={18}
+              color="#6b7280"
+            />
+
+            <input
+              type="password"
+              placeholder="Пароль"
+              value={password}
+              onChange={(e) =>
+                setPassword(e.target.value)
+              }
+              style={styles.input}
+            />
+          </div>
+
+
+          {error && (
+            <div style={styles.error}>
+              {error}
+            </div>
+          )}
+
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              ...styles.button,
+              opacity: loading ? 0.7 : 1,
+            }}
+          >
+            {loading ? (
+              "Вход..."
+            ) : (
+              <>
+                Войти
+                <ArrowRight size={18} />
+              </>
+            )}
+          </button>
+
+        </form>
       </div>
     </div>
   );
 }
 
 const styles = {
-  container: {
+
+  page: {
     display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    height: "100vh",
-    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    minHeight: "100vh",
+    background: "#f3f4f6",
+    fontFamily: "Inter, sans-serif",
   },
-  card: {
-    padding: "40px",
-    background: "white",
-    borderRadius: "15px",
-    boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
-    textAlign: "center",
-    minWidth: "300px",
-  },
-  title: {
-    margin: "0 0 10px 0",
-    color: "#333",
-  },
-  subtitle: {
-    margin: "0 0 30px 0",
-    color: "#666",
-    fontSize: "14px",
-  },
-  input: {
-    display: "block",
-    margin: "15px auto",
-    padding: "12px",
-    width: "250px",
-    border: "1px solid #ddd",
-    borderRadius: "8px",
-    fontSize: "14px",
-    outline: "none",
-    transition: "border-color 0.3s",
-  },
-  button: {
-    padding: "12px 30px",
-    marginTop: "20px",
-    cursor: "pointer",
-    borderRadius: "8px",
-    border: "none",
-    background: "#667eea",
+
+  leftPanel: {
+    flex: 1,
+
+    background:
+      "linear-gradient(135deg, #475569 0%, #64748b 100%)",
+
     color: "white",
+
+    padding: "80px",
+
+    display: "flex",
+
+    flexDirection: "column",
+
+    justifyContent: "space-between",
+  },
+
+  brandBlock: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+
+  logoImage: {
+    width: "120px",
+    height: "120px",
+    objectFit: "contain",
+  },
+
+  projectTitle: {
+    fontSize: "44px",
+    fontWeight: "800",
+    lineHeight: 1,
+    letterSpacing: "-1px",
+  },
+
+  projectSubtitle: {
+    marginTop: "10px",
+    color: "rgba(255,255,255,0.75)",
+    fontSize: "18px",
+  },
+
+  infoBlock: {
+    maxWidth: "560px",
+  },
+
+  infoTitle: {
+    fontSize: "46px",
+    fontWeight: "800",
+    lineHeight: 1.1,
+    marginBottom: "24px",
+  },
+
+  infoText: {
+    fontSize: "20px",
+    lineHeight: 1.7,
+    color: "rgba(255,255,255,0.82)",
+  },
+
+  rightPanel: {
+    width: "520px",
+
+    background: "#ffffff",
+
+    display: "flex",
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    padding: "40px",
+
+    borderLeft:
+      "1px solid #e5e7eb",
+  },
+
+  formCard: {
+    width: "100%",
+    maxWidth: "360px",
+  },
+
+  formHeader: {
+    marginBottom: "36px",
+  },
+
+  formTitle: {
+    fontSize: "36px",
+    fontWeight: "800",
+    color: "#111827",
+    marginBottom: "10px",
+  },
+
+  formSubtitle: {
+    fontSize: "15px",
+    color: "#6b7280",
+  },
+
+  inputWrapper: {
+    height: "58px",
+
+    border:
+      "1px solid #d1d5db",
+
+    borderRadius: "14px",
+
+    display: "flex",
+
+    alignItems: "center",
+
+    gap: "12px",
+
+    padding: "0 16px",
+
+    marginBottom: "18px",
+
+    background: "#ffffff",
+  },
+
+  input: {
+    flex: 1,
+    height: "100%",
+
+    border: "none",
+
+    outline: "none",
+
+    fontSize: "15px",
+
+    color: "#111827",
+
+    background: "transparent",
+  },
+
+  button: {
+    width: "100%",
+    height: "58px",
+
+    border: "none",
+
+    borderRadius: "14px",
+
+    background: "#dc2626",
+
+    color: "white",
+
     fontSize: "16px",
-    fontWeight: "bold",
-    transition: "background 0.3s",
+
+    fontWeight: "700",
+
+    cursor: "pointer",
+
+    marginTop: "12px",
+
+    display: "flex",
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    gap: "10px",
+
+    transition: "all 0.2s ease",
+  },
+
+  error: {
+    marginTop: "8px",
+
+    background: "#fef2f2",
+
+    border:
+      "1px solid #fecaca",
+
+    color: "#b91c1c",
+
+    padding: "14px",
+
+    borderRadius: "12px",
+
+    fontSize: "14px",
   },
 };
