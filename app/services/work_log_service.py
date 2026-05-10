@@ -1,5 +1,7 @@
-from datetime import date
+from sqlalchemy.orm import joinedload
+
 from app.models.work_log import WorkLog
+from app.models.user import User
 
 
 def create_log(
@@ -8,17 +10,19 @@ def create_log(
     work_type,
     work_date
 ):
-    """
-    Создать или обновить запись о работе за конкретную дату
-    """
 
-    # 🔍 проверяем, есть ли уже запись на эту дату
+    user = db.query(User).filter(
+        User.username == username
+    ).first()
+
+    if not user:
+        raise Exception("User not found")
+
     existing = db.query(WorkLog).filter(
-        WorkLog.user_id == username,
+        WorkLog.user_id == user.id,
         WorkLog.work_date == work_date
     ).first()
 
-    # 🔁 если запись уже есть — обновляем статус
     if existing:
         existing.status = work_type
 
@@ -27,9 +31,8 @@ def create_log(
 
         return existing
 
-    # 🆕 создаём новую запись
     log = WorkLog(
-        user_id=username,
+        user_id=user.id,
         work_date=work_date,
         status=work_type
     )
@@ -42,19 +45,32 @@ def create_log(
     return log
 
 
-def get_user_logs(db, username):
-    """
-    Получить все записи конкретного пользователя
-    """
+def get_user_logs(
+    db,
+    username
+):
 
-    return db.query(WorkLog).filter(
-        WorkLog.user_id == username
-    ).all()
+    user = db.query(User).filter(
+        User.username == username
+    ).first()
+
+    if not user:
+        return []
+
+    return (
+        db.query(WorkLog)
+        .filter(
+            WorkLog.user_id == user.id
+        )
+        .all()
+    )
 
 
 def get_all_logs(db):
-    """
-    Получить все записи (для менеджера)
-    """
-
-    return db.query(WorkLog).all()
+    return (
+        db.query(WorkLog)
+        .options(
+            joinedload(WorkLog.user)
+        )
+        .all()
+    )

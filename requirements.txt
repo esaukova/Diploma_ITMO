@@ -7,5 +7,6 @@ fdb
 python-dotenv
 ldap3
 python-jose
-passlib[bcrypt]
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
 pydantic==1.10.13

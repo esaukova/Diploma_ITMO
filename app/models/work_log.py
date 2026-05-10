@@ -1,10 +1,9 @@
-from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    Date,
-    ForeignKey
-)
+from sqlalchemy import Column
+from sqlalchemy import Integer
+from sqlalchemy import String
+from sqlalchemy import Date
+
+from sqlalchemy import ForeignKey
 
 from sqlalchemy.orm import relationship
 
@@ -12,6 +11,7 @@ from app.db.base import Base
 
 
 class WorkLog(Base):
+
     __tablename__ = "work_logs"
 
     id = Column(
@@ -21,13 +21,17 @@ class WorkLog(Base):
     )
 
     user_id = Column(
-        String(255),
-        ForeignKey("users.username")
+        Integer,
+        ForeignKey("users.id")
     )
 
-    work_date = Column(Date)
+    work_date = Column(
+        Date
+    )
 
-    status = Column(String(50))
+    status = Column(
+        String(50)
+    )
 
     user = relationship(
         "User",

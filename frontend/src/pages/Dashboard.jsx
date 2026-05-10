@@ -397,7 +397,7 @@ export default function Dashboard() {
                       styles.activityUser
                     }
                   >
-                    {log.user_id}
+                    {log.user?.username}
                   </div>
 
                   <div
@@ -464,7 +464,7 @@ export default function Dashboard() {
                     </td>
 
                     <td style={styles.td}>
-                      {log.user_id}
+                      {log.user?.username}
                     </td>
 
                     <td style={styles.td}>
@@ -526,7 +526,7 @@ export default function Dashboard() {
                     key={index}
                     style={styles.userRow}
                   >
-                    {log.user_id}
+                    {log.user?.username}
                   </div>
                 ))}
 
