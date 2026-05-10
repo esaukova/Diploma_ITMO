@@ -37,11 +37,9 @@ export default function Login() {
     try {
 
       const response =
-        await api.post("/auth/login", null, {
-          params: {
-            username,
-            password,
-          },
+        await api.post("/auth/login", {
+          username,
+          password,
         });
 
       localStorage.setItem(
