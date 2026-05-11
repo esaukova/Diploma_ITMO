@@ -1,8 +1,71 @@
-# React + Vite
+# Frontend — РЕД МОНИТОР
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend часть системы мониторинга сотрудников.
 
-Currently, two official plugins are available:
+Разработано на React + Vite.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
+
+# Технологии
+
+- React
+- Vite
+- Axios
+- React Router
+- Recharts
+- Lucide React
+
+---
+
+# Возможности
+
+- Авторизация пользователей
+- Календарь сотрудника
+- Панель администратора
+- Графики активности
+- Отметка статусов работы
+- Просмотр статистики
+
+---
+
+# Запуск локально
+
+## Установка зависимостей
+
+```bash
+npm install
+```
+
+---
+
+## Запуск development сервера
+
+```bash
+npm run dev
+```
+
+---
+
+# Production build
+
+```bash
+npm run build
+```
+
+---
+
+# Docker
+
+Frontend запускается автоматически через Docker Compose.
+
+```bash
+docker compose up --build
+```
+
+---
+
+# Адрес приложения
+
+```text
+http://localhost:5173
+```
