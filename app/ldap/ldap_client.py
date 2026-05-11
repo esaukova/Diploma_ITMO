@@ -17,7 +17,7 @@ def extract_role(groups):
 def authenticate(username: str, password: str):
     server = Server(settings.LDAP_SERVER, get_info=ALL)
 
-    # 🔹 bind админом
+    # bind админом
     conn = Connection(
         server,
         user=settings.LDAP_USER_DN,
@@ -39,7 +39,7 @@ def authenticate(username: str, password: str):
     user_entry = conn.entries[0]
     user_dn = user_entry.distinguishedName.value
 
-    # 🔹 bind пользователем
+    # bind пользователем
     user_conn = Connection(
         server,
         user=user_dn,
@@ -49,15 +49,14 @@ def authenticate(username: str, password: str):
     if not user_conn.bind():
         return None
 
-    # 🔥 получаем группы
+    # получаем группы
     groups = []
     if "memberOf" in user_entry:
         groups = user_entry.memberOf.values
 
-    # 🔥 определяем роль
+    # определяем роль
     role = extract_role(groups)
 
-    # 🔥 DEBUG (можешь временно оставить)
     print("LDAP groups:", groups)
     print("ROLE:", role)
 
